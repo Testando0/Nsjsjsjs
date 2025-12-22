@@ -9,16 +9,20 @@ export default async function handler(req, res) {
     const HF_TOKEN = process.env.HF_TOKEN;
 
     try {
-        // 1. TRADUTOR: Converte o prompt para Inglês para máxima fidelidade
-        const translationRes = await fetch(
+        // 1. TRADUTOR COM REFORÇO DE ESTRUTURA
+        const transRes = await fetch(
             `https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q=${encodeURIComponent(prompt)}`
         );
-        const translationData = await translationRes.json();
-        const translatedPrompt = translationData[0][0][0];
+        const transData = await transRes.json();
+        let englishPrompt = transData[0][0][0];
 
-        // 2. ROUTER: Envia o prompt traduzido para o FLUX DEV
+        // Injeção de fidelidade para evitar "gato com asas"
+        const finalPrompt = `Extreme photorealism, exact composition: ${englishPrompt}. Ensure all subjects are distinct and separate as described.`;
+
+        // 2. CHAMADA AO ROUTER (FLUX.1-PRO)
+        // O modelo [pro] é o topo da cadeia para obedecer cada vírgula.
         const response = await fetch(
-            "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-dev",
+            "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-pro",
             {
                 headers: { 
                     "Authorization": `Bearer ${HF_TOKEN}`,
@@ -28,10 +32,10 @@ export default async function handler(req, res) {
                 },
                 method: "POST",
                 body: JSON.stringify({ 
-                    inputs: translatedPrompt,
+                    inputs: finalPrompt,
                     parameters: {
-                        guidance_scale: 4.5, // Fidelidade extrema ao prompt
-                        num_inference_steps: 28 // Máximo realismo
+                        guidance_scale: 7.5, // Máxima obediência ao texto
+                        num_inference_steps: 40, // Refinamento máximo de detalhes
                     }
                 }),
             }
@@ -42,7 +46,6 @@ export default async function handler(req, res) {
             return res.status(response.status).json({ error: errorText });
         }
 
-        // 3. RETORNO: Envia a imagem binária diretamente
         const arrayBuffer = await response.arrayBuffer();
         res.setHeader('Content-Type', 'image/png');
         return res.send(Buffer.from(arrayBuffer));
