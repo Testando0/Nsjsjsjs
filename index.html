@@ -2,52 +2,53 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Flux.1 Vercel Edition</title>
+    <title>Flux.1 Vercel</title>
     <style>
-        body { font-family: sans-serif; background: #000; color: #fff; display: flex; justify-content: center; padding: 20px; }
-        .card { background: #111; padding: 25px; border-radius: 15px; width: 100%; max-width: 500px; border: 1px solid #222; }
-        textarea { width: 100%; padding: 12px; background: #050505; color: #fff; border: 1px solid #333; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; margin-top: 15px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #222; }
-        #output { margin-top: 20px; width: 100%; min-height: 300px; border: 2px dashed #222; display: flex; align-items: center; justify-content: center; border-radius: 10px; overflow: hidden; }
-        img { width: 100%; }
+        body { font-family: sans-serif; background: #000; color: #fff; text-align: center; padding: 20px; }
+        .card { background: #111; padding: 20px; border-radius: 12px; border: 1px solid #333; max-width: 500px; margin: auto; }
+        textarea { width: 100%; background: #050505; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; margin-top: 10px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        #output { margin-top: 20px; min-height: 300px; border: 1px dashed #222; display: flex; align-items: center; justify-content: center; }
+        img { width: 100%; border-radius: 8px; }
     </style>
 </head>
 <body>
+    <div class="card">
+        <h2>Flux.1 Pro</h2>
+        <textarea id="prompt" rows="3">A high-tech robot, 8k, cinematic</textarea>
+        <button id="btn" onclick="generate()">GERAR IMAGEM</button>
+        <div id="output">Pronto.</div>
+    </div>
 
-<div class="card">
-    <h2>Flux.1 Pro</h2>
-    <textarea id="prompt" rows="3">A futuristic neon city, high detail</textarea>
-    <button id="btn" onclick="generate()">GERAR IMAGEM</button>
-    <div id="output">Resultado...</div>
-</div>
+    <script>
+        async function generate() {
+            const p = document.getElementById('prompt').value;
+            const b = document.getElementById('btn');
+            const out = document.getElementById('output');
 
-<script>
-    async function generate() {
-        const p = document.getElementById('prompt').value;
-        const b = document.getElementById('btn');
-        const out = document.getElementById('output');
+            b.disabled = true;
+            out.innerText = "Aguardando resposta do servidor (até 60s)...";
 
-        b.disabled = true;
-        out.innerText = "Processando no servidor...";
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: p })
+                });
 
-        try {
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: p })
-            });
+                if (!response.ok) {
+                    const errorJson = await response.json();
+                    throw new Error(errorJson.error || "Erro desconhecido");
+                }
 
-            if (!response.ok) throw new Error("Erro na geração.");
-
-            const blob = await response.blob();
-            out.innerHTML = `<img src="${URL.createObjectURL(blob)}">`;
-        } catch (e) {
-            out.innerText = "Erro: " + e.message;
-        } finally {
-            b.disabled = false;
+                const blob = await response.blob();
+                out.innerHTML = `<img src="${URL.createObjectURL(blob)}">`;
+            } catch (e) {
+                out.innerHTML = `<p style="color:red">ERRO: ${e.message}</p>`;
+            } finally {
+                b.disabled = false;
+            }
         }
-    }
-</script>
+    </script>
 </body>
 </html>
