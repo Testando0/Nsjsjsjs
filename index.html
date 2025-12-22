@@ -1,188 +1,209 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Motor de Precisão Absoluta v5.0</title>
+    <title>Sonar Pro | Acoustic Monitoring</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --bg: #050505;
-            --card: #0f0f0f;
-            --accent: #ffffff;
-            --text: #e0e0e0;
-        }
-
-        body {
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { font-family: 'JetBrains Mono', monospace; background-color: #05070a; }
+        .scanner-line {
+            height: 2px;
+            background: rgba(34, 211, 238, 0.5);
+            box-shadow: 0 0 15px #22d3ee;
+            position: absolute;
             width: 100%;
-            max-width: 500px;
-            background: var(--card);
-            padding: 30px;
-            border-radius: 24px;
-            border: 1px solid #222;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            text-align: center;
+            animation: scan 4s linear infinite;
         }
-
-        h1 {
-            font-size: 1.2rem;
-            letter-spacing: 2px;
-            margin-bottom: 25px;
-            color: var(--accent);
-            text-transform: uppercase;
-        }
-
-        textarea {
-            width: 100%;
-            background: #000;
-            color: #fff;
-            border: 1px solid #333;
-            border-radius: 15px;
-            padding: 15px;
-            font-size: 16px;
-            resize: none;
-            box-sizing: border-box;
-            outline: none;
-            transition: border 0.3s;
-        }
-
-        textarea:focus {
-            border-color: #555;
-        }
-
-        button {
-            width: 100%;
-            padding: 18px;
-            margin-top: 20px;
-            background: var(--accent);
-            color: #000;
-            border: none;
-            border-radius: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 14px;
-            transition: transform 0.1s, opacity 0.2s;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        button:disabled {
-            opacity: 0.2;
-            cursor: not-allowed;
-        }
-
-        #canvas {
-            margin-top: 30px;
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            background: #000;
-            border-radius: 18px;
-            border: 1px solid #1a1a1a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
-
-        img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .loader {
-            color: #666;
-            font-size: 13px;
-            letter-spacing: 1px;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .error-msg {
-            color: #ff4d4d;
-            font-size: 12px;
-            padding: 20px;
-        }
+        @keyframes scan { from { top: 0%; } to { top: 100%; } }
+        .lcd-bg { background: radial-gradient(circle at center, #0a1118 0%, #05070a 100%); }
     </style>
 </head>
-<body>
+<body class="min-h-screen text-cyan-500 p-4 md:p-8 flex items-center justify-center overflow-hidden">
 
-<div class="container">
-    <h1>Precision Engine</h1>
-    <textarea id="promptInput" rows="3" placeholder="Ex: Gato azul montado num dragão mecânico..."></textarea>
-    <button id="genBtn" onclick="generateImage()">GERAR COM FIDELIDADE TOTAL</button>
-    
-    <div id="canvas">
-        <span class="loader">Aguardando comando...</span>
+    <div class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-4 gap-4">
+        
+        <div class="lg:col-span-1 space-y-4">
+            <div class="border border-cyan-900 bg-slate-900/50 p-4 rounded-sm">
+                <h2 class="text-xs font-bold text-cyan-700 mb-4 tracking-tighter uppercase">// STATUS_SYSTEM</h2>
+                <div class="space-y-2 text-[10px]">
+                    <div class="flex justify-between"><span>CPU_LINK:</span> <span class="text-white">ACTIVE</span></div>
+                    <div class="flex justify-between"><span>SIGNAL_TYPE:</span> <span class="text-white">HYDROPHONIC</span></div>
+                    <div class="flex justify-between"><span>FILTER:</span> <span class="text-emerald-500">LOW_PASS_500HZ</span></div>
+                    <div class="flex justify-between"><span>DECODING:</span> <span id="is-recording" class="text-slate-600">OFF</span></div>
+                </div>
+            </div>
+
+            <div class="border border-cyan-900 bg-slate-900/50 p-4 rounded-sm">
+                <h2 class="text-xs font-bold text-cyan-700 mb-4 tracking-tighter uppercase">// EXPORT_CONTROL</h2>
+                <button id="btnStart" onclick="startSonar()" class="w-full mb-2 py-2 border border-cyan-500 text-cyan-500 hover:bg-cyan-500 hover:text-black transition-all text-xs font-bold uppercase">Iniciar Escuta</button>
+                <button id="btnStop" onclick="stopSonar()" disabled class="w-full py-2 border border-slate-800 text-slate-800 transition-all text-xs font-bold uppercase">Interromper & Salvar</button>
+            </div>
+        </div>
+
+        <div class="lg:col-span-3 space-y-4">
+            <div class="relative border border-cyan-500 bg-black h-[400px] rounded-sm overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+                <div class="scanner-line"></div>
+                <div class="absolute top-4 left-4 z-10">
+                    <span class="bg-cyan-500 text-black px-2 py-1 text-[10px] font-bold">LIVE_SIGNAL</span>
+                </div>
+                <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
+                    <div id="rec-dot" class="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <span id="timer" class="text-xl font-bold tabular-nums">00:00:00</span>
+                </div>
+                <canvas id="canvas" class="w-full h-full"></canvas>
+            </div>
+
+            <div id="console" class="h-32 border border-cyan-900 bg-black/80 p-3 overflow-y-auto text-[10px] leading-relaxed scrollbar-hide italic">
+                <div class="text-cyan-800">> Initializing sonar core...</div>
+                <div class="text-cyan-800">> Vercel edge deployment detected.</div>
+                <div class="text-cyan-800">> Ready for marine signal capture.</div>
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-    async function generateImage() {
-        const prompt = document.getElementById('promptInput').value;
-        const btn = document.getElementById('genBtn');
-        const canvas = document.getElementById('canvas');
+    <script>
+        let audioCtx, analyser, biquadFilter, mediaRecorder, stream, animationId;
+        let chunks = [];
+        let startTime;
 
-        if (!prompt.trim()) return;
+        const ui = {
+            timer: document.getElementById('timer'),
+            log: document.getElementById('console'),
+            btnStart: document.getElementById('btnStart'),
+            btnStop: document.getElementById('btnStop'),
+            dot: document.getElementById('rec-dot'),
+            recStatus: document.getElementById('is-recording')
+        };
 
-        // Bloquear botão e mostrar estado de carregamento
-        btn.disabled = true;
-        canvas.innerHTML = '<span class="loader">A CONECTAR À GPU...</span>';
-
-        try {
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: prompt })
-            });
-
-            // Verificar se a resposta é JSON válido
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("O servidor retornou um erro inesperado (Não-JSON).");
-            }
-
-            const data = await response.json();
-
-            if (data.error) {
-                canvas.innerHTML = `<div class="error-msg">ERRO: ${data.error}</div>`;
-            } else if (data.url) {
-                // Criar a imagem e carregar
-                const img = new Image();
-                img.src = data.url;
-                img.onload = () => {
-                    canvas.innerHTML = '';
-                    canvas.appendChild(img);
-                };
-                img.onerror = () => {
-                    canvas.innerHTML = '<div class="error-msg">Erro ao carregar os pixeis da imagem.</div>';
-                };
-            }
-        } catch (e) {
-            canvas.innerHTML = `<div class="error-msg">FALHA NA ENGINE: ${e.message}</div>`;
-        } finally {
-            btn.disabled = false;
+        function printLog(msg) {
+            const div = document.createElement('div');
+            div.innerHTML = `> ${msg}`;
+            ui.log.appendChild(div);
+            ui.log.scrollTop = ui.log.scrollHeight;
         }
-    }
-</script>
 
+        async function startSonar() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Configuração da Cadeia de Áudio Profissional
+                const source = audioCtx.createMediaStreamSource(stream);
+                biquadFilter = audioCtx.createBiquadFilter();
+                biquadFilter.type = "lowpass";
+                biquadFilter.frequency.value = 500; // Isola baixas frequências do oceano
+
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+
+                source.connect(biquadFilter);
+                biquadFilter.connect(analyser);
+
+                // Gravação do sinal processado
+                const dest = audioCtx.createMediaStreamDestination();
+                biquadFilter.connect(dest);
+                mediaRecorder = new MediaRecorder(dest.stream);
+                
+                chunks = [];
+                mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                mediaRecorder.onstop = exportAudio;
+
+                mediaRecorder.start();
+                startVisualizer();
+                startTime = Date.now();
+                updateTimer();
+
+                // UI Updates
+                ui.btnStart.disabled = true;
+                ui.btnStart.classList.add('opacity-20', 'cursor-not-allowed');
+                ui.btnStop.disabled = false;
+                ui.btnStop.classList.replace('border-slate-800', 'border-red-500');
+                ui.btnStop.classList.replace('text-slate-800', 'text-red-500');
+                ui.dot.classList.replace('bg-slate-700', 'bg-red-500');
+                ui.recStatus.innerText = "CAPTURING";
+                ui.recStatus.classList.replace('text-slate-600', 'text-emerald-500');
+
+                printLog("Audio engine active. Biquad low-pass engaged at 500Hz.");
+            } catch (err) {
+                printLog("Hardware Error: Microfone não detectado ou permissão negada.");
+            }
+        }
+
+        function stopSonar() {
+            mediaRecorder.stop();
+            stream.getTracks().forEach(t => t.stop());
+            cancelAnimationFrame(animationId);
+            printLog("Captura encerrada. Empacotando dados binários...");
+        }
+
+        function exportAudio() {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `OCEAN_SIG_${Date.now()}.webm`;
+            a.click();
+            printLog(`Sinal exportado com sucesso: OCEAN_SIG_${Date.now()}.webm`);
+            setTimeout(() => location.reload(), 2000);
+        }
+
+        function updateTimer() {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                const diff = new Date(Date.now() - startTime);
+                ui.timer.innerText = diff.toISOString().substr(11, 8);
+                setTimeout(updateTimer, 1000);
+            }
+        }
+
+        function startVisualizer() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            function draw() {
+                animationId = requestAnimationFrame(draw);
+                analyser.getByteTimeDomainData(dataArray);
+
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Desenha grade de fundo
+                ctx.strokeStyle = '#081a1a';
+                ctx.lineWidth = 1;
+                for(let i=0; i<canvas.width; i+=40) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                }
+                for(let i=0; i<canvas.height; i+=40) {
+                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+                }
+
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#22d3ee';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#22d3ee';
+                ctx.beginPath();
+
+                let sliceWidth = canvas.width / bufferLength;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    let v = dataArray[i] / 128.0;
+                    let y = v * canvas.height / 2;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+            }
+            draw();
+        }
+    </script>
 </body>
 </html>
