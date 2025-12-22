@@ -1,3 +1,7 @@
+export const config = {
+  maxDuration: 60, // Define o máximo de 60 segundos para o plano Hobby
+};
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send('Método não permitido');
 
@@ -15,22 +19,22 @@ export default async function handler(req, res) {
                 method: "POST",
                 body: JSON.stringify({ 
                     inputs: prompt,
-                    parameters: { wait_for_model: true } // Força o servidor a esperar o modelo carregar
+                    parameters: { wait_for_model: true } 
                 }),
             }
         );
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Erro HF:", errorText);
-            return res.status(response.status).json({ error: `Hugging Face diz: ${errorText}` });
+            const errorData = await response.json();
+            return res.status(response.status).json({ error: errorData.error || "Erro no Hugging Face" });
         }
 
-        const arrayBuffer = await response.arrayBuffer();
+        const buffer = await response.arrayBuffer();
         res.setHeader('Content-Type', 'image/png');
-        return res.send(Buffer.from(arrayBuffer));
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
+        return res.send(Buffer.from(buffer));
 
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: "Erro interno: " + error.message });
     }
 }
