@@ -1,8 +1,7 @@
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+    if (req.method !== 'POST') return res.status(405).send('Método não permitido');
 
     const { prompt } = req.body;
-    // O Token fica protegido aqui, no lado do servidor
     const HF_TOKEN = process.env.HF_TOKEN;
 
     try {
@@ -14,17 +13,23 @@ export default async function handler(req, res) {
                     "Content-Type": "application/json"
                 },
                 method: "POST",
-                body: JSON.stringify({ inputs: prompt }),
+                body: JSON.stringify({ 
+                    inputs: prompt,
+                    parameters: { wait_for_model: true } // Força o servidor a esperar o modelo carregar
+                }),
             }
         );
 
-        if (!response.ok) throw new Error('Falha no Hugging Face');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Erro HF:", errorText);
+            return res.status(response.status).json({ error: `Hugging Face diz: ${errorText}` });
+        }
 
         const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
         res.setHeader('Content-Type', 'image/png');
-        return res.send(buffer);
+        return res.send(Buffer.from(arrayBuffer));
+
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
