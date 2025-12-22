@@ -10,21 +10,21 @@ export default async function handler(req, res) {
 
     try {
         const response = await fetch(
-            "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
+            "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-dev",
             {
                 headers: { 
                     "Authorization": `Bearer ${HF_TOKEN}`,
                     "Content-Type": "application/json",
-                    "x-use-cache": "false", // Crucial: Obriga o Router a gerar do zero
+                    "x-use-cache": "false",
                     "x-wait-for-model": "true"
                 },
                 method: "POST",
                 body: JSON.stringify({ 
                     inputs: prompt,
                     parameters: {
-                        // Aumentamos o Guidance Scale para forçar a cor azul e a ação de voar
-                        guidance_scale: 4.0,
-                        num_inference_steps: 4
+                        // Aumentamos para 5.0 para fidelidade absoluta ao texto
+                        guidance_scale: 5.0,
+                        num_inference_steps: 28 // O Dev precisa de mais passos para ser fiel
                     }
                 }),
             }
@@ -40,6 +40,6 @@ export default async function handler(req, res) {
         return res.send(Buffer.from(arrayBuffer));
 
     } catch (error) {
-        return res.status(500).json({ error: "Erro no Router: " + error.message });
+        return res.status(500).json({ error: "Erro crítico no Router: " + error.message });
     }
 }
