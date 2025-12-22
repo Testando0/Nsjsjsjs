@@ -9,18 +9,24 @@ export default async function handler(req, res) {
     const HF_TOKEN = process.env.HF_TOKEN;
 
     try {
-        // A URL CORRETA DO ROUTER PARA IMAGENS É ESTA:
         const response = await fetch(
             "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
             {
                 headers: { 
                     "Authorization": `Bearer ${HF_TOKEN}`,
                     "Content-Type": "application/json",
-                    "x-use-cache": "false",
+                    "x-use-cache": "false", // Força uma geração nova, ignora imagens prontas
                     "x-wait-for-model": "true"
                 },
                 method: "POST",
-                body: JSON.stringify({ inputs: prompt }),
+                body: JSON.stringify({ 
+                    inputs: prompt,
+                    parameters: {
+                        // O segredo da fidelidade: guidance_scale alto força o "gato azul"
+                        guidance_scale: 4.5,
+                        num_inference_steps: 4
+                    }
+                }),
             }
         );
 
@@ -29,7 +35,6 @@ export default async function handler(req, res) {
             return res.status(response.status).json({ error: errorText });
         }
 
-        // O Router nesta rota retorna o binário (blob) da imagem
         const arrayBuffer = await response.arrayBuffer();
         res.setHeader('Content-Type', 'image/png');
         return res.send(Buffer.from(arrayBuffer));
