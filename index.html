@@ -1,107 +1,46 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flux.1 Router - Vercel</title>
+    <title>Flux Router Precision</title>
     <style>
-        :root {
-            --bg: #050505;
-            --card: #111111;
-            --accent: #2563eb;
-            --text: #ffffff;
-        }
-
-        body {
-            font-family: sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-
-        .container {
-            background: var(--card);
-            border: 1px solid #222;
-            padding: 2rem;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 450px;
-            text-align: center;
-        }
-
-        textarea {
-            width: 100%;
-            background: #000;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 12px;
-            color: #fff;
-            margin-bottom: 1rem;
-            box-sizing: border-box;
-            resize: none;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        button:disabled {
-            background: #222;
-            color: #555;
-            cursor: not-allowed;
-        }
-
-        #output {
-            margin-top: 1.5rem;
-            min-height: 300px;
-            border: 2px dashed #222;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            background: #000;
-        }
-
-        img { width: 100%; height: auto; display: block; }
-        
-        .error { color: #ff4444; padding: 10px; font-size: 14px; }
+        body { font-family: sans-serif; background: #000; color: #fff; display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .container { width: 100%; max-width: 500px; background: #0a0a0a; border: 1px solid #1a1a1a; padding: 25px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.8); }
+        h2 { color: #3b82f6; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; }
+        textarea { width: 100%; background: #000; color: #fff; border: 1px solid #222; border-radius: 12px; padding: 15px; font-size: 14px; box-sizing: border-box; resize: none; margin-bottom: 15px; }
+        textarea:focus { border-color: #3b82f6; outline: none; }
+        button { width: 100%; padding: 16px; background: #3b82f6; color: #fff; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #2563eb; transform: translateY(-1px); }
+        button:disabled { background: #1a1a1a; color: #444; cursor: not-allowed; }
+        #viewer { margin-top: 25px; width: 100%; aspect-ratio: 1/1; background: #000; border: 1px solid #1a1a1a; border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; }
+        img { width: 100%; height: 100%; object-fit: contain; }
+        .load { border: 2px solid #111; border-top: 2px solid #3b82f6; border-radius: 50%; width: 25px; height: 25px; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="margin-top:0">Flux.1 Router</h2>
-    <textarea id="prompt" rows="3" placeholder="Escreve o teu prompt aqui..."></textarea>
-    <button id="btn" onclick="generate()">GERAR IMAGEM</button>
-
-    <div id="output">
-        <span id="status" style="color:#444">Aguardando comando...</span>
+    <h2>Flux Engine Router</h2>
+    <textarea id="promptInput" rows="3" placeholder="Ex: Um gato azul vibrante voando no espaço, estilo futurista..."></textarea>
+    <button id="drawBtn" onclick="draw()">GERAR IMAGEM</button>
+    <div id="viewer">
+        <span id="msg" style="color: #333;">O resultado será exibido aqui</span>
     </div>
 </div>
 
 <script>
-    async function generate() {
-        const prompt = document.getElementById('prompt').value;
-        const btn = document.getElementById('btn');
-        const output = document.getElementById('output');
-        const status = document.getElementById('status');
+    async function draw() {
+        const prompt = document.getElementById('promptInput').value;
+        const btn = document.getElementById('drawBtn');
+        const viewer = document.getElementById('viewer');
 
         if (!prompt.trim()) return;
 
         btn.disabled = true;
-        output.innerHTML = '<span style="color:#888">Roteando requisição para GPU...</span>';
+        btn.innerText = "ROTEANDO GPU...";
+        viewer.innerHTML = '<div class="load"></div>';
 
         try {
             const response = await fetch('/api/generate', {
@@ -111,22 +50,19 @@
             });
 
             if (!response.ok) {
-                // Tenta ler a mensagem de erro detalhada se disponível
-                const errorDetail = await response.text();
-                throw new Error(errorDetail || "Erro no Router");
+                const err = await response.json();
+                throw new Error(err.error || "Falha no Router");
             }
 
-            // O Router configurado no backend devolve a imagem (blob)
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
-            
-            output.innerHTML = `<img src="${url}">`;
+            viewer.innerHTML = `<img src="${url}">`;
 
         } catch (e) {
-            output.innerHTML = `<div class="error"><b>ERRO:</b><br>${e.message}</div>`;
-            console.error(e);
+            viewer.innerHTML = `<div style="color:#ff4444; padding:20px; font-size:12px;">ERRO: ${e.message}</div>`;
         } finally {
             btn.disabled = false;
+            btn.innerText = "GERAR IMAGEM";
         }
     }
 </script>
