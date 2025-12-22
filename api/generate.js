@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
     try {
         const response = await fetch(
-            "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+            "https://router-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
             {
                 headers: { 
                     Authorization: `Bearer ${HF_TOKEN}`,
