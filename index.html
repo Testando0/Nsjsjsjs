@@ -2,53 +2,147 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Flux.1 Vercel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flux Router - High Performance</title>
     <style>
-        body { font-family: sans-serif; background: #000; color: #fff; text-align: center; padding: 20px; }
-        .card { background: #111; padding: 20px; border-radius: 12px; border: 1px solid #333; max-width: 500px; margin: auto; }
-        textarea { width: 100%; background: #050505; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; margin-top: 10px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        #output { margin-top: 20px; min-height: 300px; border: 1px dashed #222; display: flex; align-items: center; justify-content: center; }
-        img { width: 100%; border-radius: 8px; }
+        :root {
+            --bg: #0a0a0a;
+            --card: #141414;
+            --accent: #2563eb;
+            --border: #262626;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--accent); }
+
+        textarea {
+            width: 100%;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            color: #fff;
+            font-size: 14px;
+            resize: none;
+            box-sizing: border-box;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #333; cursor: not-allowed; }
+
+        #output {
+            margin-top: 1.5rem;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        img { width: 100%; height: 100%; object-fit: cover; }
+
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #333;
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .err-box { color: #f87171; font-size: 14px; text-align: center; padding: 1rem; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>Flux.1 Pro</h2>
-        <textarea id="prompt" rows="3">A high-tech robot, 8k, cinematic</textarea>
-        <button id="btn" onclick="generate()">GERAR IMAGEM</button>
-        <div id="output">Pronto.</div>
+
+<div class="container">
+    <h1>Flux Router Engine</h1>
+    <textarea id="prompt" rows="3" placeholder="Descreva sua imagem..."></textarea>
+    <button id="genBtn" onclick="generate()">GERAR VIA ROUTER</button>
+
+    <div id="output">
+        <span id="placeholder" style="color: #444;">Pronto para rotear requisição</span>
     </div>
+</div>
 
-    <script>
-        async function generate() {
-            const p = document.getElementById('prompt').value;
-            const b = document.getElementById('btn');
-            const out = document.getElementById('output');
+<script>
+    async function generate() {
+        const promptInput = document.getElementById('prompt');
+        const btn = document.getElementById('genBtn');
+        const output = document.getElementById('output');
 
-            b.disabled = true;
-            out.innerText = "Aguardando resposta do servidor (até 60s)...";
+        if (!promptInput.value.trim()) return;
 
-            try {
-                const response = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: p })
-                });
+        // Estado de carregamento
+        btn.disabled = true;
+        btn.innerText = "Roteando...";
+        output.innerHTML = '<div class="loader"></div>';
 
-                if (!response.ok) {
-                    const errorJson = await response.json();
-                    throw new Error(errorJson.error || "Erro desconhecido");
-                }
+        try {
+            // Chamada para a sua API na Vercel que usa o router.huggingface.co
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: promptInput.value })
+            });
 
-                const blob = await response.blob();
-                out.innerHTML = `<img src="${URL.createObjectURL(blob)}">`;
-            } catch (e) {
-                out.innerHTML = `<p style="color:red">ERRO: ${e.message}</p>`;
-            } finally {
-                b.disabled = false;
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || "Erro no Router Gateway");
             }
+
+            // O Router retorna o objeto data[0] com a URL ou base64
+            const imageData = result.data[0].url || `data:image/png;base64,${result.data[0].b64_json}`;
+            
+            output.innerHTML = `<img src="${imageData}" alt="Resultado Flux">`;
+
+        } catch (err) {
+            output.innerHTML = `<div class="err-box"><b>ERRO NO ROUTER:</b><br>${err.message}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "GERAR VIA ROUTER";
         }
-    </script>
+    }
+</script>
+
 </body>
 </html>
