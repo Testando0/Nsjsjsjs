@@ -9,20 +9,18 @@ export default async function handler(req, res) {
     const HF_TOKEN = process.env.HF_TOKEN;
 
     try {
-        // 1. TRADUTOR COM REFORÇO DE ESTRUTURA
+        // 1. TRADUÇÃO COM REFORÇO SEMÂNTICO
+        // Isso garante que "montado em" não vire "misturado com"
         const transRes = await fetch(
             `https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q=${encodeURIComponent(prompt)}`
         );
         const transData = await transRes.json();
-        let englishPrompt = transData[0][0][0];
-
-        // Injeção de fidelidade para evitar "gato com asas"
-        const finalPrompt = `Extreme photorealism, exact composition: ${englishPrompt}. Ensure all subjects are distinct and separate as described.`;
+        const translated = transData[0][0][0];
 
         // 2. CHAMADA AO ROUTER (FLUX.1-PRO)
-        // O modelo [pro] é o topo da cadeia para obedecer cada vírgula.
+        // Usamos o endpoint de inferência direta que é o mais robusto do HF
         const response = await fetch(
-            "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-pro",
+            "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-pro",
             {
                 headers: { 
                     "Authorization": `Bearer ${HF_TOKEN}`,
@@ -32,18 +30,18 @@ export default async function handler(req, res) {
                 },
                 method: "POST",
                 body: JSON.stringify({ 
-                    inputs: finalPrompt,
+                    inputs: translated,
                     parameters: {
-                        guidance_scale: 7.5, // Máxima obediência ao texto
-                        num_inference_steps: 40, // Refinamento máximo de detalhes
+                        guidance_scale: 7.5, // Obediência absoluta ao texto
+                        num_inference_steps: 50 // Qualidade máxima de detalhes
                     }
                 }),
             }
         );
 
         if (!response.ok) {
-            const errorText = await response.text();
-            return res.status(response.status).json({ error: errorText });
+            const errorMsg = await response.text();
+            return res.status(response.status).json({ error: errorMsg });
         }
 
         const arrayBuffer = await response.arrayBuffer();
