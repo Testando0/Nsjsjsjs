@@ -10,32 +10,37 @@ export default async function handler(req, res) {
 
     try {
         const response = await fetch(
-            "https://router.huggingface.co/hf-inference/v1/chat/completions",
+            "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
             {
                 headers: { 
                     "Authorization": `Bearer ${HF_TOKEN}`,
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "x-use-cache": "false",
+                    "x-wait-for-model": "true"
                 },
                 method: "POST",
                 body: JSON.stringify({ 
-                    model: "openai/dall-e-3", // O modelo mais fiel a prompts literais
-                    messages: [
-                        { role: "user", content: `Generate a high-quality image based on this exact prompt: ${prompt}` }
-                    ]
+                    inputs: prompt,
+                    parameters: {
+                        // Força a fidelidade ao prompt
+                        guidance_scale: 3.5,
+                        num_inference_steps: 4
+                    }
                 }),
             }
         );
 
-        const data = await response.json();
-
         if (!response.ok) {
-            return res.status(response.status).json({ error: data.error || "Erro no Router" });
+            const errorText = await response.text();
+            return res.status(response.status).json({ error: errorText });
         }
 
-        // Retorna o JSON com a URL da imagem gerada pelo Router
-        return res.status(200).json(data);
+        // O Router para este modelo retorna a imagem diretamente (binário)
+        const arrayBuffer = await response.arrayBuffer();
+        res.setHeader('Content-Type', 'image/png');
+        return res.send(Buffer.from(arrayBuffer));
 
     } catch (error) {
-        return res.status(500).json({ error: "Falha Crítica: " + error.message });
+        return res.status(500).json({ error: "Erro no Router: " + error.message });
     }
 }
