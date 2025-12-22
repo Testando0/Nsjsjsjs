@@ -9,45 +9,47 @@ export default async function handler(req, res) {
     const HF_TOKEN = process.env.HF_TOKEN;
 
     try {
-        // 1. TRADUTOR AUTOMÁTICO (Google Translate)
+        // 1. TRADUTOR INTEGRADO (Google)
         const transRes = await fetch(
             `https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q=${encodeURIComponent(prompt)}`
         );
         const transData = await transRes.json();
         const translatedPrompt = transData[0][0][0];
 
-        // 2. CHAMADA AO NOVO ROUTER (Padronizado)
-        // Usamos o endpoint v1/images/generations que é o padrão do router.huggingface.co
+        // 2. CHAMADA AO ROUTER (URL DIRETA)
+        // Esta URL é a única que o Router aceita para o Flux sem retornar "Not Found"
         const response = await fetch(
-            "https://router.huggingface.co/hf-inference/v1/images/generations",
+            "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-dev",
             {
                 headers: { 
                     "Authorization": `Bearer ${HF_TOKEN}`,
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "x-use-cache": "false",
+                    "x-wait-for-model": "true"
                 },
                 method: "POST",
                 body: JSON.stringify({ 
-                    model: "black-forest-labs/FLUX.1-dev", // Modelo de alta fidelidade
-                    prompt: translatedPrompt,
+                    inputs: translatedPrompt,
                     parameters: {
-                        guidance_scale: 5.0, // Força a obediência ao prompt (azul/voando/dragão)
+                        guidance_scale: 5.0, // Alta fidelidade ao prompt
                         num_inference_steps: 28
                     }
                 }),
             }
         );
 
-        const result = await response.json();
-
+        // Proteção contra o erro "Not Found"
         if (!response.ok) {
-            return res.status(response.status).json({ error: result.error || "Erro no Router" });
+            const errorText = await response.text();
+            return res.status(response.status).json({ error: errorText });
         }
 
-        // O Router retorna um JSON com a imagem em base64 ou URL
-        // Vamos enviar o JSON direto para o frontend tratar
-        return res.status(200).json(result);
+        // 3. RESPOSTA BINÁRIA (A imagem real)
+        const arrayBuffer = await response.arrayBuffer();
+        res.setHeader('Content-Type', 'image/png');
+        return res.send(Buffer.from(arrayBuffer));
 
     } catch (error) {
-        return res.status(500).json({ error: "Falha na Engine: " + error.message });
+        return res.status(500).json({ error: "Erro na Engine: " + error.message });
     }
 }
