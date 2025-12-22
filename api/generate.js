@@ -1,5 +1,5 @@
 export const config = {
-  maxDuration: 60, // Define o máximo de 60 segundos para o plano Hobby
+  maxDuration: 60,
 };
 
 export default async function handler(req, res) {
@@ -9,32 +9,38 @@ export default async function handler(req, res) {
     const HF_TOKEN = process.env.HF_TOKEN;
 
     try {
+        // URL DO ROUTER (GATEWAY DE ROTEAMENTO DINÂMICO)
+        // Note que não usamos mais "api-inference"
         const response = await fetch(
-            "https://router-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+            "https://router.huggingface.co/hf-inference/v1/images/generations",
             {
                 headers: { 
-                    Authorization: `Bearer ${HF_TOKEN}`,
+                    "Authorization": `Bearer ${HF_TOKEN}`,
                     "Content-Type": "application/json"
                 },
                 method: "POST",
                 body: JSON.stringify({ 
-                    inputs: prompt,
-                    parameters: { wait_for_model: true } 
+                    model: "black-forest-labs/FLUX.1-schnell",
+                    prompt: prompt,
+                    parameters: {
+                        num_inference_steps: 4
+                    }
                 }),
             }
         );
 
+        const data = await response.json();
+
         if (!response.ok) {
-            const errorData = await response.json();
-            return res.status(response.status).json({ error: errorData.error || "Erro no Hugging Face" });
+            return res.status(response.status).json({ 
+                error: data.error || "Erro no Router Gateway" 
+            });
         }
 
-        const buffer = await response.arrayBuffer();
-        res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Cache-Control', 'no-store, max-age=0');
-        return res.send(Buffer.from(buffer));
+        // O Router retorna o formato padrão de JSON (data[0].b64_json ou url)
+        return res.status(200).json(data);
 
     } catch (error) {
-        return res.status(500).json({ error: "Erro interno: " + error.message });
+        return res.status(500).json({ error: "Falha Crítica no Router: " + error.message });
     }
 }
