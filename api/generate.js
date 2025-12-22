@@ -15,15 +15,15 @@ export default async function handler(req, res) {
                 headers: { 
                     "Authorization": `Bearer ${HF_TOKEN}`,
                     "Content-Type": "application/json",
-                    "x-use-cache": "false", // Força uma geração nova, ignora imagens prontas
+                    "x-use-cache": "false", // Crucial: Obriga o Router a gerar do zero
                     "x-wait-for-model": "true"
                 },
                 method: "POST",
                 body: JSON.stringify({ 
                     inputs: prompt,
                     parameters: {
-                        // O segredo da fidelidade: guidance_scale alto força o "gato azul"
-                        guidance_scale: 4.5,
+                        // Aumentamos o Guidance Scale para forçar a cor azul e a ação de voar
+                        guidance_scale: 4.0,
                         num_inference_steps: 4
                     }
                 }),
