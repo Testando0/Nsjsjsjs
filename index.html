@@ -1,98 +1,44 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Image Gen - CORSProxy.io</title>
+    <title>Gemini Image Gen - Fix 405</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #0d1117; 
-            color: #c9d1d9; 
-            display: flex; 
-            justify-content: center; 
-            padding: 40px; 
-        }
-        .card { 
-            background: #161b22; 
-            border: 1px solid #30363d; 
-            padding: 30px; 
-            border-radius: 12px; 
-            width: 100%; 
-            max-width: 550px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        h2 { color: #58a6ff; text-align: center; margin-top: 0; }
-        .input-group { margin-bottom: 20px; }
-        button { 
-            width: 100%; 
-            padding: 14px; 
-            background-color: #238636; 
-            color: white; 
-            border: none; 
-            border-radius: 6px; 
-            font-size: 16px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: background 0.2s;
-        }
-        button:hover { background-color: #2ea043; }
-        button:disabled { background-color: #216e39; opacity: 0.6; cursor: not-allowed; }
-        #status { 
-            margin-top: 20px; 
-            text-align: center; 
-            font-size: 14px; 
-            color: #8b949e; 
-        }
-        #result { 
-            margin-top: 20px; 
-            background: #010409; 
-            padding: 15px; 
-            border-radius: 6px; 
-            font-family: 'Cascadia Code', monospace; 
-            font-size: 12px; 
-            color: #79c0ff; 
-            overflow-x: auto; 
-            border: 1px solid #30363d;
-        }
-        .img-preview { 
-            margin-top: 20px; 
-            width: 100%; 
-            border-radius: 8px; 
-            display: none; 
-            border: 1px solid #58a6ff;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: #000; color: #0f0; display: flex; justify-content: center; padding: 20px; }
+        .terminal { background: #111; border: 1px solid #0f0; padding: 20px; border-radius: 5px; width: 100%; max-width: 600px; box-shadow: 0 0 15px rgba(0, 255, 0, 0.2); }
+        button { width: 100%; padding: 15px; background: #0f0; color: #000; border: none; cursor: pointer; font-weight: bold; margin-bottom: 20px; }
+        button:disabled { background: #050; cursor: wait; }
+        pre { background: #000; padding: 15px; border: 1px solid #333; overflow-x: auto; font-size: 12px; color: #0fa; min-height: 100px; }
+        #imageBox img { width: 100%; margin-top: 15px; border: 1px solid #0f0; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>Gemini Image Gen</h2>
-    <p style="text-align: center; font-size: 0.9em;">A utilizar <strong>corsproxy.io</strong> para evitar bloqueios.</p>
-    
-    <button id="genBtn">Gerar Imagem Cyberpunk</button>
-
-    <div id="status">Pronto para iniciar.</div>
-    <pre id="result">Aguardando resposta da API...</pre>
-    <img id="outputImage" class="img-preview" alt="Imagem Gerada">
+<div class="terminal">
+    <h2>> REQUEST_GENERATOR</h2>
+    <button id="execBtn">EXECUTAR POST REQUEST</button>
+    <div id="log">Status: Aguardando...</div>
+    <pre id="console">Log de saída...</pre>
+    <div id="imageBox"></div>
 </div>
 
 <script>
-    const genBtn = document.getElementById('genBtn');
-    const status = document.getElementById('status');
-    const result = document.getElementById('result');
-    const outputImage = document.getElementById('outputImage');
+    const execBtn = document.getElementById('execBtn');
+    const log = document.getElementById('log');
+    const consoleBox = document.getElementById('console');
+    const imageBox = document.getElementById('imageBox');
 
-    genBtn.addEventListener('click', async () => {
-        // Reset de interface
-        genBtn.disabled = true;
-        status.innerText = "A processar via Proxy...";
-        result.innerText = "A enviar pedido POST...";
-        outputImage.style.display = "none";
+    execBtn.addEventListener('click', async () => {
+        execBtn.disabled = true;
+        log.innerText = "Status: Enviando via Proxy Seguro...";
+        consoleBox.innerText = "Iniciando fetch...";
+        imageBox.innerHTML = "";
 
         const targetUrl = 'https://api.felo.ai/v1/gemini-image-gen';
-        // Prefixo do CORSProxy.io
-        const proxyUrl = 'https://corsproxy.io/?'; 
+        
+        // Tentaremos usar o proxy da ThingProxy ou o AnyOrigin que aceitam POST mais livremente
+        const proxyUrl = 'https://thingproxy.freeboard.io/fetch/'; 
 
         const payload = {
             "prompt": "A cyberpunk city at night, neon signs in Japanese, ultra detailed, 4k",
@@ -101,40 +47,37 @@
         };
 
         try {
-            const response = await fetch(proxyUrl + encodeURIComponent(targetUrl), {
+            const response = await fetch(proxyUrl + targetUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer free'
+                    'Authorization': 'Bearer free',
+                    // Cabeçalhos para simular uma requisição legítima
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) {
-                throw new Error(`Erro HTTP! Status: ${response.status}`);
+            if (response.status === 405) {
+                throw new Error("Erro 405: O servidor da Felo.ai rejeitou o método POST deste proxy. Tente outro proxy ou verifique se a URL mudou.");
             }
 
             const data = await response.json();
-            
-            // Exibe o JSON da resposta
-            result.innerText = JSON.stringify(data, null, 2);
-            status.innerText = "Sucesso!";
+            consoleBox.innerText = JSON.stringify(data, null, 2);
+            log.innerText = "Status: Resposta recebida!";
 
-            // Tenta encontrar a URL da imagem no objeto de resposta
-            // Nota: Ajuste os campos conforme a estrutura real que a API devolver
-            const imgUrl = data.url || (data.data && data.data[0] && data.data[0].url);
-
+            // Se a API retornar imagem
+            const imgUrl = data.url || (data.data && data.data[0]?.url);
             if (imgUrl) {
-                outputImage.src = imgUrl;
-                outputImage.style.display = "block";
+                imageBox.innerHTML = `<img src="${imgUrl}">`;
             }
 
         } catch (error) {
-            status.innerText = "Erro na requisição.";
-            result.innerText = "Detalhes: " + error.message;
-            console.error("Erro:", error);
+            log.innerText = "Status: Falha na operação.";
+            consoleBox.innerText = "DETALHES: " + error.message;
+            console.error(error);
         } finally {
-            genBtn.disabled = false;
+            execBtn.disabled = false;
         }
     });
 </script>
